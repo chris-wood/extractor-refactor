@@ -46,33 +46,52 @@ print nx.is_tree(H)
 r = G.nodes()[0] 
 
 def find_leaves(G, r):
-	queue = [r]
+	queue = [(r, None)]
 	leaves = []
 	visited = []
+	children = {}
 	while len(queue) > 0:
-		curr = queue.pop(0)
+		(curr, prev) = queue.pop(0)
 		if curr not in visited:
 			visited.append(curr)
+			if curr not in children:
+				children[curr] = []
 			neighbors = G.neighbors(curr)
 			if len(neighbors) == 1:
 				leaves.append(curr)
 			else:
-				queue = queue + neighbors
-	return leaves
+				if prev != None and prev in neighbors:
+					neighbors.remove(prev)
+				for n in neighbors:
+					queue.append((n, curr))
+					children[curr].append(n)
+	return leaves, children
 
-def postorder(G, curr, nodes):
-	neighbors = filter(lambda n : n in nodes, G.neighbors(curr))
+def postorder(G, parent, curr, nodes):
+	neighbors = G.neighbors(curr)
+	neighbors = filter(lambda n : n not in nodes, neighbors)
+	if parent in neighbors:
+		neighbors.remove(parent)
 	for n in neighbors:
-		postorder(G, n, nodes)
+		postorder(G, curr, n, nodes)
 	nodes.append(curr)
 
 def find_internals(G, r, leaves):
 	nodes = []
-	postorder(G, r, nodes)
-	return filter(lambda x : x in leaves, nodes)
+	postorder(G, -1, r, nodes)
+	return filter(lambda x : x not in leaves, nodes)	
+
+def find_nodes_of_at_most_degree(G, t):
+	matches = []
+	for n in G.nodes():
+		if len(G.neighbors(n)) <= t:
+			matches.append(n)
+	return matches
 
 # Enumerate all leaves in G by BFS
-leaves = find_leaves(G, r)
+leaves, children = find_leaves(G, r)
+print leaves
+print children
 
 # Initialize the S map
 S = {}
@@ -83,7 +102,7 @@ for u in H.nodes():
 # Initialize S[] based on the leaves of G to start
 for gl in leaves:
 	for u in H.nodes():
-		hleaves = find_leaves(H, u)
+		hleaves, children = find_leaves(H, u)
 		for hl in hleaves:
 			S[(gl, hl)] = H.neighbors(u)
 
@@ -91,4 +110,12 @@ for gl in leaves:
 internals = find_internals(G, r, leaves)
 print internals
 
+for i,v in enumerate(internals):
+	childs = children[v]
+	hdegrees = find_nodes_of_at_most_degree(H, len(childs) + 1)
+	for j,u in enumerate(hdegrees):
+		uneighbors = G.neighbors(u)
+
+		# Construct the bipartite graph and find the maximal matching here... 
+				
 
