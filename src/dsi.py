@@ -59,7 +59,17 @@ def find_leaves(G, r):
 def get_subtree_rooted_at(G, u, children):
     H = nx.Graph()
     H.add_node(u)
-    pass # TODO: add all children recursively below to H
+
+    # BFS from G(u) down, using children, to add all nodes H
+    queue = [u]
+    while len(queue) > 0:
+        v = queue.pop(0)
+        for c in children[v]:
+            H.add_node(c)
+            H.add_edge(v, c)
+            queue.append(c)
+
+    return H
 
 G_leaves, G_children, G_parentOf = find_leaves(G, G.nodes()[0])
 H_leaves, H_children, H_parentOf = find_leaves(H, H.nodes()[0])
@@ -67,11 +77,15 @@ H_leaves, H_children, H_parentOf = find_leaves(H, H.nodes()[0])
 # DP memory
 subtree = {}
 
-# Run the algorithm
-for l in G_leaves:
-    # call up the tree
+def is_subtree(G, u, H, w, subtree):
+    print G, u, H, w, subtree
     pass
 
-
+# Run the algorithm
+H_root = H.nodes()[0]
+for l in G_leaves:
+    parent = G_parentOf[l]
+    G_parent = get_subtree_rooted_at(G, parent, G_children)
+    is_subtree(G_parent, parent, H, H_root, subtree)
 
 
