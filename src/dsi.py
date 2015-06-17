@@ -21,9 +21,10 @@ G.add_edge(2,5)
 G.add_edge(3,6)
 G.add_edge(3,7)
 
-H.add_nodes_from([8,9,10])
+# H.add_nodes_from([8,9,10])
+H.add_nodes_from([8,9])
 H.add_edge(8,9)
-H.add_edge(8,10)
+# H.add_edge(8,10)
 
 print "Is G a tree?", nx.is_tree(G)
 print "Is H a tree?", nx.is_tree(H)
@@ -50,7 +51,7 @@ def find_leaves(G, r):
             if curr not in children:
                 children[curr] = []
             neighbors = G.neighbors(curr)
-            if len(neighbors) == 1:
+            if len(neighbors) == 1 and curr != r:
                 parentOf[curr] = prev
                 leaves.append(curr)
             else:
@@ -88,33 +89,45 @@ subtree = {}
 def is_subtree(G, u, H, w, subtree):
     G_childs = G.childrenOf[u]
     H_childs = H.childrenOf[w]
+
+    # If the subtrees don't have the same number of children, they can't
+    # possibly be isomorphic
     if len(G_childs) != len(H_childs):
         subtree[(u, w)] = False
-    else:    
+    else:
+
+        print G.G.edges(), H.G.edges(), u, w
+
         edgeSet = []
         for ui in G_childs:
             for wi in H_childs:
                 edge = (ui, wi)
                 if edge in subtree and subtree[edge] == True:
-                    edgeSet.append(edge)            
-    
+                    edgeSet.append(edge)
+
         bg = nx.Graph()
         bg.add_nodes_from(G_childs, bipartite=0)
         bg.add_nodes_from(H_childs, bipartite=1)
         bg.add_edges_from(edgeSet)
 
         print bg.nodes(), bg.edges()
-        
+
         matchingSize = len(nx.maximal_matching(bg))
         if matchingSize == (len(bg.nodes()) / 2): # perfect matching for bg
             subtree[(u, w)] = True
 
+# Initialize the base conditions -- leaves (single node trees) are obviously subtrees
+for lh in H_leaves:
+    for u in G.nodes():
+        subtree[(u, lh)] = True
+
 # Run the algorithm
+G_root = G.nodes()[0]
 H_root = H.nodes()[0]
-for l in G_leaves:
-    parent = G_parentOf[l]
-    G_parent = get_subtree_rooted_at(G, parent, G_children)
-    is_subtree(G_tree, parent, H_tree, H_root, subtree)
+for l in H_leaves:
+    parent = H_parentOf[l]
+    H_parent = get_subtree_rooted_at(H, parent, H_children)
+    is_subtree(G_tree, G_root, H_tree, parent, subtree)
 
-print subtree
-
+roots = (G_root, H_root)
+print subtree[roots]
