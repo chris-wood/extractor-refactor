@@ -29,7 +29,13 @@ print "Is G a tree?", nx.is_tree(G)
 print "Is H a tree?", nx.is_tree(H)
 
 # Run the algorithm
-r = G.nodes()[0] 
+r = G.nodes()[0]
+
+class Tree(object):
+    def __init__(self, G, leaves, children, parentOf):
+        self.G = G
+        self.childrenOf = children
+        self.parentOf = parentOf
 
 def find_leaves(G, r):
     queue = [(r, None)]
@@ -72,20 +78,43 @@ def get_subtree_rooted_at(G, u, children):
     return H
 
 G_leaves, G_children, G_parentOf = find_leaves(G, G.nodes()[0])
+G_tree = Tree(G, G_leaves, G_children, G_parentOf)
 H_leaves, H_children, H_parentOf = find_leaves(H, H.nodes()[0])
+H_tree = Tree(H, H_leaves, H_children, H_parentOf)
 
 # DP memory
 subtree = {}
 
 def is_subtree(G, u, H, w, subtree):
-    print G, u, H, w, subtree
-    pass
+    G_childs = G.childrenOf[u]
+    H_childs = H.childrenOf[w]
+    if len(G_childs) != len(H_childs):
+        subtree[(u, w)] = False
+    else:    
+        edgeSet = []
+        for ui in G_childs:
+            for wi in H_childs:
+                edge = (ui, wi)
+                if edge in subtree and subtree[edge] == True:
+                    edgeSet.append(edge)            
+    
+        bg = nx.Graph()
+        bg.add_nodes_from(G_childs, bipartite=0)
+        bg.add_nodes_from(H_childs, bipartite=1)
+        bg.add_edges_from(edgeSet)
+
+        print bg.nodes(), bg.edges()
+        
+        matchingSize = len(nx.maximal_matching(bg))
+        if matchingSize == (len(bg.nodes()) / 2): # perfect matching for bg
+            subtree[(u, w)] = True
 
 # Run the algorithm
 H_root = H.nodes()[0]
 for l in G_leaves:
     parent = G_parentOf[l]
     G_parent = get_subtree_rooted_at(G, parent, G_children)
-    is_subtree(G_parent, parent, H, H_root, subtree)
+    is_subtree(G_tree, parent, H_tree, H_root, subtree)
 
+print subtree
 
