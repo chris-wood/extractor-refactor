@@ -46,76 +46,122 @@ print nx.is_tree(H)
 r = G.nodes()[0] 
 
 def find_leaves(G, r):
-	queue = [(r, None)]
-	leaves = []
-	visited = []
-	children = {}
-	while len(queue) > 0:
-		(curr, prev) = queue.pop(0)
-		if curr not in visited:
-			visited.append(curr)
-			if curr not in children:
-				children[curr] = []
-			neighbors = G.neighbors(curr)
-			if len(neighbors) == 1:
-				leaves.append(curr)
-			else:
-				if prev != None and prev in neighbors:
-					neighbors.remove(prev)
-				for n in neighbors:
-					queue.append((n, curr))
-					children[curr].append(n)
-	return leaves, children
+    queue = [(r, None)]
+    leaves = []
+    visited = []
+    children = {}
+    while len(queue) > 0:
+        (curr, prev) = queue.pop(0)
+        if curr not in visited:
+            visited.append(curr)
+            if curr not in children:
+                children[curr] = []
+            neighbors = G.neighbors(curr)
+            if len(neighbors) == 1:
+                leaves.append(curr)
+            else:
+                if prev != None and prev in neighbors:
+                    neighbors.remove(prev)
+                for n in neighbors:
+                    queue.append((n, curr))
+                    children[curr].append(n)
+    return leaves, children
 
 def postorder(G, parent, curr, nodes):
-	neighbors = G.neighbors(curr)
-	neighbors = filter(lambda n : n not in nodes, neighbors)
-	if parent in neighbors:
-		neighbors.remove(parent)
-	for n in neighbors:
-		postorder(G, curr, n, nodes)
-	nodes.append(curr)
+    neighbors = G.neighbors(curr)
+    neighbors = filter(lambda n : n not in nodes, neighbors)
+    if parent in neighbors:
+        neighbors.remove(parent)
+    for n in neighbors:
+        postorder(G, curr, n, nodes)
+    nodes.append(curr)
 
 def find_internals(G, r, leaves):
-	nodes = []
-	postorder(G, -1, r, nodes)
-	return filter(lambda x : x not in leaves, nodes)	
+    nodes = []
+    postorder(G, -1, r, nodes)
+    return filter(lambda x : x not in leaves, nodes)    
 
 def find_nodes_of_at_most_degree(G, t):
-	matches = []
-	for n in G.nodes():
-		if len(G.neighbors(n)) <= t:
-			matches.append(n)
-	return matches
+    matches = []
+    for n in G.nodes():
+        if len(G.neighbors(n)) <= t:
+            matches.append(n)
+    return matches
 
 # Enumerate all leaves in G by BFS
 leaves, children = find_leaves(G, r)
-print leaves
-print children
+print "Leaves:", leaves
+print "Children:", children
 
 # Initialize the S map
 S = {}
 for u in H.nodes():
-	for v in G.nodes():
-		S[(v,u)] = []
+    for v in G.nodes():
+        S[(v,u)] = []
 
 # Initialize S[] based on the leaves of G to start
 for gl in leaves:
-	for u in H.nodes():
-		hleaves, children = find_leaves(H, u)
-		for hl in hleaves:
-			S[(gl, hl)] = H.neighbors(u)
+    for u in H.nodes():
+        hleaves, dummyChildren = find_leaves(H, u)
+        for hl in hleaves:
+            S[(gl, hl)] = H.neighbors(u)
 
 # Main loop
 internals = find_internals(G, r, leaves)
-print internals
+print "Internal nodes:", internals
 
 for i,v in enumerate(internals):
-	childs = children[v]
-	hdegrees = find_nodes_of_at_most_degree(H, len(childs) + 1)
-	for j,u in enumerate(hdegrees):
-		uneighbors = G.neighbors(u)
+    print children 
+    childs = children[v]
+    t = len(childs)
+    hdegrees = find_nodes_of_at_most_degree(H, t + 1)
+    for j,u in enumerate(hdegrees):
+        uneighbors = H.neighbors(u)
+        s = len(uneighbors)
 
-		# Construct the bipartite graph and find the maximal matching here... 
-				
+        X = uneighbors
+        Y = childs
 
+        edgeSet = []
+        for uu in X:
+            for vv in Y:
+                if (vv,uu) in S:
+                    edgeSet.append((uu, vv))
+        
+        # Construct the bipartite graph between the two vertex sets
+        bg = nx.Graph()
+        bg.add_nodes_from(X, bipartite=0)
+        bg.add_nodes_from(Y, bipartite=1)
+        bg.add_edges_from(edgeSet)
+
+        # Try to find all the maximal matchings for all i = 0..s
+        mi_vector = []
+        m_star = 0
+        X_star = []
+        for si in range(-1, s):
+            X_i = X # only if si == 0
+            if si >= 0:
+                u_i = X[si]
+                X_i = [uu for uu in X if uu != u_i]
+            testGraph = nx.Graph()
+            testGraph.add_nodes_from(X_i, bipartite=0)
+            testGraph.add_nodes_from(Y, bipartite=1)
+            
+            m_i = len(nx.maximal_matching(testGraph))
+            mi_vector.append((m_i, u_i, X_i)) # record the X_i, this can be skipped
+
+            if m_i > m_star:
+                m_star = m_i
+                X_star = X_i
+        
+        if (v,u) not in S:
+            S[(v,u)] = []
+        for (m_i, u_i, X_i) in mi_vector:
+            if m_i == len(X_i):
+                S[(v, u)].append(u_i)
+
+        if u in S[(v, u)]:
+            print "YES"
+            sys.exit(0)
+
+print "NO"
