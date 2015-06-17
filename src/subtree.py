@@ -140,7 +140,9 @@ for i,v in enumerate(internals):
         X_star = []
         for si in range(-1, s):
             X_i = X # only if si == 0
+            u_i = 0
             if si >= 0:
+                print si, len(X)
                 u_i = X[si]
                 X_i = [uu for uu in X if uu != u_i]
             testGraph = nx.Graph()
