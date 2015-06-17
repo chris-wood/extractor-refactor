@@ -115,6 +115,7 @@ for i,v in enumerate(internals):
     childs = children[v]
     t = len(childs)
     hdegrees = find_nodes_of_at_most_degree(H, t + 1)
+    print hdegrees
     for j,u in enumerate(hdegrees):
         uneighbors = H.neighbors(u)
         s = len(uneighbors)
