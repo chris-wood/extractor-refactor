@@ -23,6 +23,14 @@ import networkx as nx
 # 15. end For
 # 16. Return NO
 
+def pause(locals):
+    while True:
+        variable = raw_input("> ")
+        if variable in locals:
+            print locals[variable]
+        elif len(variable) == 0:
+            return 
+
 # Create G and H
 G = nx.Graph()
 H = nx.Graph()
@@ -97,7 +105,7 @@ print "Children:", children
 S = {}
 for u in H.nodes():
     for v in G.nodes():
-        S[(v,u)] = []
+        S[(v,u)] = set()
 
 # Initialize S[] based on the leaves of G to start
 for gl in leaves:
@@ -106,19 +114,20 @@ for gl in leaves:
         for hl in hleaves:
             S[(gl, hl)] = H.neighbors(u)
 
+### CORRECT TO HERE
+
 # Main loop
 internals = find_internals(G, r, leaves)
 print "Internal nodes:", internals
 
 for i,v in enumerate(internals):
-    print children 
     childs = children[v]
     t = len(childs)
     hdegrees = find_nodes_of_at_most_degree(H, t + 1)
-    print hdegrees
     for j,u in enumerate(hdegrees):
-        uneighbors = H.neighbors(u)
+        uneighbors = H.neighbors(u) # u1,...,us
         s = len(uneighbors)
+
 
         X = uneighbors
         Y = childs
@@ -127,7 +136,8 @@ for i,v in enumerate(internals):
         for uu in X:
             for vv in Y:
                 if (vv,uu) in S:
-                    edgeSet.append((uu, vv))
+                    if u in S[(vv, uu)]:
+                        edgeSet.append((uu, vv))
         
         # Construct the bipartite graph between the two vertex sets
         bg = nx.Graph()
@@ -135,34 +145,47 @@ for i,v in enumerate(internals):
         bg.add_nodes_from(Y, bipartite=1)
         bg.add_edges_from(edgeSet)
 
+        #pause(locals())
+
         # Try to find all the maximal matchings for all i = 0..s
         mi_vector = []
         m_star = 0
         X_star = []
         for si in range(-1, s):
-            X_i = X # only if si == 0
-            u_i = 0
+            # Define X_0 = X and X_i = X \ {u_i}
+            X_i = X # only if i = 0 (si == -1)
+            u_i = u # fixed.
             if si >= 0:
-                print si, len(X)
-                u_i = X[si]
+                u_i = X[si] # X = uneighbors
                 X_i = [uu for uu in X if uu != u_i]
+    
             testGraph = nx.Graph()
             testGraph.add_nodes_from(X_i, bipartite=0)
             testGraph.add_nodes_from(Y, bipartite=1)
+        
+            edgeSet = []
+            for uu in X_i:
+                neighbors = bg.neighbors(uu)
+                for n in neighbors:
+                    edgeSet.append((uu, n))
+            testGraph.add_edges_from(edgeSet)
             
             m_i = len(nx.maximal_matching(testGraph))
             mi_vector.append((m_i, u_i, X_i)) # record the X_i, this can be skipped
+            
+            pause(locals())
 
             if m_i > m_star:
                 m_star = m_i
                 X_star = X_i
         
         if (v,u) not in S:
-            S[(v,u)] = []
+            S[(v,u)] = set()
         for (m_i, u_i, X_i) in mi_vector:
             if m_i == len(X_i):
-                S[(v, u)].append(u_i)
+                S[(v, u)].add(u_i)
 
+        print S[(v, u)], u, v
         if u in S[(v, u)]:
             print "YES"
             sys.exit(0)
